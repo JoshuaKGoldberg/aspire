@@ -348,6 +348,20 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
     {
         // Convert dot notation to colon notation for IConfiguration access
         var configKey = key.Replace('.', ':');
-        return Task.FromResult(configuration[configKey]);
+        var value = configuration[configKey];
+
+        // IConfiguration converts JSON booleans true/false to .NET strings "True"/"False".
+        // Normalize to lowercase so CLI output matches standard JSON conventions and is
+        // consistent with what aspire config set writes.
+        if (string.Equals(value, "True", StringComparison.Ordinal))
+        {
+            value = "true";
+        }
+        else if (string.Equals(value, "False", StringComparison.Ordinal))
+        {
+            value = "false";
+        }
+
+        return Task.FromResult(value);
     }
 }
