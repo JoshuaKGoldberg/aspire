@@ -2288,6 +2288,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     CertificateBundlePath = ReferenceExpression.Create($"{certificatesDestination}/cert.pem"),
                     // Build Linux PATH style colon-separated list of directories
                     CertificateDirectoriesPath = ReferenceExpression.Create($"{string.Join(':', dirs)}"),
+                    RootCertificatesPath = certificatesDestination,
+                    IsContainer = true,
                 };
             })
             .WithHttpsCertificateConfig(cert => new()
