@@ -225,4 +225,71 @@ public class ConfigurationServiceTests(ITestOutputHelper outputHelper)
         Assert.Contains("appHost", result);
         Assert.Contains("MyApp/MyApp.csproj", result);
     }
+
+    [Fact]
+    public async Task SetConfigurationAsync_WritesBooleanAsProperJsonType()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var (service, settingsFilePath) = CreateService(workspace, "{}");
+
+        await service.SetConfigurationAsync("features.polyglotSupportEnabled", "true", isGlobal: false);
+
+        var result = File.ReadAllText(settingsFilePath);
+
+        // Value should be a JSON boolean (true), not a string ("true")
+        Assert.Contains("true", result);
+        Assert.DoesNotContain("\"true\"", result);
+
+        // Verify round-trip through AspireConfigFile.Load
+        var config = AspireConfigFile.Load(workspace.WorkspaceRoot.FullName);
+        Assert.NotNull(config?.Features);
+        Assert.True(config.Features["polyglotSupportEnabled"]);
+    }
+
+    [Fact]
+    public async Task SetConfigurationAsync_WritesFalseBooleanAsProperJsonType()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var (service, settingsFilePath) = CreateService(workspace, "{}");
+
+        await service.SetConfigurationAsync("features.showAllTemplates", "false", isGlobal: false);
+
+        var result = File.ReadAllText(settingsFilePath);
+
+        // Value should be a JSON boolean (false), not a string ("false")
+        Assert.Contains("false", result);
+        Assert.DoesNotContain("\"false\"", result);
+    }
+
+    [Fact]
+    public async Task SetConfigurationAsync_WritesIntegerAsProperJsonType()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var (service, settingsFilePath) = CreateService(workspace, "{}");
+
+        await service.SetConfigurationAsync("someNumber", "42", isGlobal: false);
+
+        var result = File.ReadAllText(settingsFilePath);
+
+        Assert.Contains("42", result);
+        Assert.DoesNotContain("\"42\"", result);
+    }
+
+    [Fact]
+    public async Task SetConfigurationAsync_WritesStringValueAsString()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var (service, settingsFilePath) = CreateService(workspace, "{}");
+
+        await service.SetConfigurationAsync("channel", "daily", isGlobal: false);
+
+        var result = File.ReadAllText(settingsFilePath);
+
+        // Non-boolean/numeric values remain as strings
+        Assert.Contains("\"daily\"", result);
+    }
 }

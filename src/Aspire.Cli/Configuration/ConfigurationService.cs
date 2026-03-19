@@ -209,9 +209,9 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
             currentObject = currentObject[part]!.AsObject();
         }
 
-        // Set the final value
+        // Set the final value, preserving the natural JSON type where possible.
         var finalKey = keyParts[keyParts.Length - 1];
-        currentObject[finalKey] = value;
+        currentObject[finalKey] = ConvertToTypedJsonValue(value);
     }
 
     /// <summary>
@@ -300,6 +300,26 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Converts a string value to its natural JSON type when possible.
+    /// Boolean strings ("true"/"false") become JSON booleans,
+    /// integer strings become JSON numbers, and everything else stays as a string.
+    /// </summary>
+    private static JsonNode? ConvertToTypedJsonValue(string value)
+    {
+        if (bool.TryParse(value, out var boolValue))
+        {
+            return JsonValue.Create(boolValue);
+        }
+
+        if (long.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var longValue))
+        {
+            return JsonValue.Create(longValue);
+        }
+
+        return value;
     }
 
     /// <summary>

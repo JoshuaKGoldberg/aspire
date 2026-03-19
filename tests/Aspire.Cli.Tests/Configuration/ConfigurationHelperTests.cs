@@ -108,4 +108,34 @@ public class ConfigurationHelperTests(ITestOutputHelper outputHelper)
         Assert.Equal("MyApp.csproj", config["appHost:path"]);
         Assert.Equal("daily", config["channel"]);
     }
+
+    [Fact]
+    public void TryNormalizeSettingsFile_PreservesBooleanTypes()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var settingsPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
+        // File has a colon-separated key with a boolean value
+        File.WriteAllText(settingsPath, """
+            {
+              "features:polyglotSupportEnabled": true,
+              "features:showAllTemplates": false
+            }
+            """);
+
+        var normalized = ConfigurationHelper.TryNormalizeSettingsFile(settingsPath);
+
+        Assert.True(normalized);
+
+        var content = File.ReadAllText(settingsPath);
+        // Booleans should remain as JSON booleans, not become strings
+        Assert.DoesNotContain("\"true\"", content);
+        Assert.DoesNotContain("\"false\"", content);
+
+        // Verify the file can be loaded by AspireConfigFile without error
+        var config = AspireConfigFile.Load(workspace.WorkspaceRoot.FullName);
+        Assert.NotNull(config?.Features);
+        Assert.True(config.Features["polyglotSupportEnabled"]);
+        Assert.False(config.Features["showAllTemplates"]);
+    }
 }
